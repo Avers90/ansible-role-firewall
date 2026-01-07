@@ -15,8 +15,8 @@ firewall_whitelist_ips: []
 
 ## WireGuard integration
 firewall_wireguard_enabled: false
-firewall_wireguard_port: 51820
-firewall_wireguard_interface: "wg0"
+firewall_wireguard_port: "{{ wireguard_port | default('51820') }}"
+firewall_wireguard_interface: "{{ wireguard_interface | default('wg0') }}"
 firewall_wireguard_network: "{{ wireguard_address | default('10.0.0.0/24') | ansible.utils.ipaddr('network/prefix') }}"
 
 ## DDoS protection settings
