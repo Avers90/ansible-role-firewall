@@ -1,0 +1,12 @@
+## {{ ansible_managed }}
+/var/log/ipset_ddos.log /var/log/ipset_portscan.log {
+    daily
+    rotate 4
+    compress
+    missingok
+    notifempty
+    create 640 syslog adm
+    postrotate
+        systemctl reload rsyslog >/dev/null 2>&1 || true
+    endscript
+}

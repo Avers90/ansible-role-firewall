@@ -1,0 +1,111 @@
+---
+- name: firewall | Fail if distro is not supported
+  ansible.builtin.fail:
+    msg: "Distribution '{{ ansible_distribution }}' is not supported. Supported: Debian, Ubuntu"
+  when: ansible_distribution not in ['Debian', 'Ubuntu']
+
+- name: firewall | Install dependencies
+  ansible.builtin.apt:
+    name:
+      - iptables
+      - ipset
+      - ipset-persistent
+      - netfilter-persistent
+      - rsyslog
+      - logrotate
+    state: present
+    update_cache: true
+
+- name: firewall | Enable netfilter-persistent service
+  ansible.builtin.systemd:
+    name: netfilter-persistent
+    enabled: true
+
+- name: firewall | Set WAN interface fact
+  ansible.builtin.set_fact:
+    firewall_wan_interface_actual: "{{ firewall_wan_interface | default(ansible_default_ipv4.interface, true) }}"
+    firewall_wan_ip_actual: "{{ firewall_wan_ip | default(ansible_default_ipv4.address, true) }}"
+
+- name: firewall | Display network configuration
+  ansible.builtin.debug:
+    msg: |
+      WAN Interface: {{ firewall_wan_interface_actual }}
+      WAN IP: {{ firewall_wan_ip_actual }}
+      TCP Ports: {{ firewall_ports_tcp | join(', ') }}
+      UDP Ports: {{ firewall_ports_udp | join(', ') if firewall_ports_udp | length > 0 else 'none' }}
+      WireGuard: {{ 'enabled (' + firewall_wireguard_interface + ')' if firewall_wireguard_enabled else 'disabled' }}
+
+- name: firewall | Create ipset list BANPORT
+  ansible.builtin.shell: |
+    ipset list BANPORT &>/dev/null || ipset create BANPORT hash:ip timeout {{ firewall_ban_timeout }}
+  changed_when: false
+
+- name: firewall | Create ipset list BANDDOS
+  ansible.builtin.shell: |
+    ipset list BANDDOS &>/dev/null || ipset create BANDDOS nethash hashsize 16348 maxelem 131072 timeout {{ firewall_ban_timeout }}
+  changed_when: false
+
+- name: firewall | Deploy rsyslog configuration
+  ansible.builtin.template:
+    src: rsyslog-ipset.conf.j2
+    dest: /etc/rsyslog.d/ipset.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart rsyslog
+  when: firewall_logging_enabled
+
+- name: firewall | Deploy logrotate configuration
+  ansible.builtin.template:
+    src: logrotate-ipset.j2
+    dest: /etc/logrotate.d/ipset-iptables
+    owner: root
+    group: root
+    mode: "0644"
+  when: firewall_logging_enabled
+
+- name: firewall | Deploy iptables rules script
+  ansible.builtin.template:
+    src: iptables-rules.sh.j2
+    dest: /usr/local/sbin/iptables-rules.sh
+    owner: root
+    group: root
+    mode: "0700"
+  register: firewall_script
+
+- name: firewall | Apply iptables rules
+  ansible.builtin.shell: /usr/local/sbin/iptables-rules.sh
+  when: firewall_script.changed
+
+- name: firewall | Ensure rules are applied
+  ansible.builtin.shell: /usr/local/sbin/iptables-rules.sh
+  changed_when: false
+
+- name: firewall | Save ipset rules
+  ansible.builtin.shell: ipset save > /etc/iptables/ipsets
+  changed_when: false
+
+- name: firewall | Save iptables rules (netfilter-persistent)
+  ansible.builtin.shell: netfilter-persistent save
+  changed_when: false
+
+- name: firewall | Display completion message
+  ansible.builtin.debug:
+    msg: |
+      Firewall configured successfully!
+
+      Allowed TCP: {{ firewall_ports_tcp | join(', ') }}
+      Allowed UDP: {{ firewall_ports_udp | join(', ') if firewall_ports_udp | length > 0 else 'none' }}
+      {% if firewall_wireguard_enabled %}
+      WireGuard: {{ firewall_wireguard_interface }} (port {{ firewall_wireguard_port }}/udp)
+      WireGuard NAT: {{ firewall_wireguard_network }} -> {{ firewall_wan_interface_actual }}
+      {% endif %}
+
+      Rules saved via netfilter-persistent
+
+      Useful commands:
+        ipset -L BANPORT           # View banned IPs (portscan)
+        ipset -L BANDDOS           # View banned IPs (DDoS)
+        ipset flush BANPORT        # Clear portscan bans
+        netfilter-persistent save  # Save current rules
+        netfilter-persistent reload # Reload saved rules

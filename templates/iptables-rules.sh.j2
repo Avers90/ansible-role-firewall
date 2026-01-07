@@ -1,0 +1,130 @@
+#!/bin/bash
+## {{ ansible_managed }}
+## Firewall rules managed by Ansible
+
+IPT="iptables"
+
+## Network configuration
+WAN={{ firewall_wan_interface_actual }}
+WAN_IP={{ firewall_wan_ip_actual }}
+
+## Port lists
+WPORT_TCP={{ firewall_ports_tcp | join(',') }}
+{% if firewall_ports_udp | length > 0 %}
+WPORT_UDP={{ firewall_ports_udp | join(',') }}
+{% endif %}
+
+## Ensure ipset lists exist
+ipset list BANPORT &>/dev/null || ipset create BANPORT hash:ip timeout {{ firewall_ban_timeout }}
+ipset list BANDDOS &>/dev/null || ipset create BANDDOS nethash hashsize 16348 maxelem 131072 timeout {{ firewall_ban_timeout }}
+
+## Clear all rules
+$IPT -F
+$IPT -F -t nat
+$IPT -F -t mangle
+$IPT -X 2>/dev/null
+$IPT -t nat -X 2>/dev/null
+$IPT -t mangle -X 2>/dev/null
+
+## Default policies: DROP everything
+$IPT -P INPUT DROP
+$IPT -P OUTPUT DROP
+$IPT -P FORWARD DROP
+
+## Allow established connections
+$IPT -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+$IPT -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+$IPT -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+## Allow localhost
+$IPT -A INPUT -i lo -j ACCEPT
+$IPT -A OUTPUT -o lo -j ACCEPT
+
+{% if firewall_allow_ping %}
+## Allow ICMP (ping)
+$IPT -A INPUT -p icmp --icmp-type echo-reply -j ACCEPT
+$IPT -A INPUT -p icmp --icmp-type destination-unreachable -j ACCEPT
+$IPT -A INPUT -p icmp --icmp-type time-exceeded -j ACCEPT
+$IPT -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
+{% endif %}
+
+{% if firewall_whitelist_ips | length > 0 %}
+## Whitelist IPs (full access)
+{% for ip in firewall_whitelist_ips %}
+$IPT -A INPUT -s {{ ip }} -j ACCEPT
+{% endfor %}
+{% endif %}
+
+## Allow all outgoing connections
+$IPT -A OUTPUT -o ${WAN} -j ACCEPT
+
+## Drop invalid packets
+$IPT -A INPUT -m state --state INVALID -j DROP
+$IPT -A FORWARD -m state --state INVALID -j DROP
+
+## Drop null packets
+$IPT -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
+
+## Syn-flood protection
+$IPT -A INPUT -p tcp ! --syn -m state --state NEW -j DROP
+$IPT -A OUTPUT -p tcp ! --syn -m state --state NEW -j DROP
+
+## Block IPs in ban lists
+$IPT -A INPUT -m set --match-set BANPORT src -j DROP
+$IPT -A INPUT -m set --match-set BANDDOS src -j DROP
+
+{% if firewall_ddos_enabled %}
+## DDoS protection
+$IPT -N DDOS_PROTECT 2>/dev/null || $IPT -F DDOS_PROTECT
+$IPT -A INPUT -p tcp --syn -j DDOS_PROTECT
+$IPT -A DDOS_PROTECT -m hashlimit --hashlimit {{ firewall_ddos_rate }} --hashlimit-burst {{ firewall_ddos_burst }} --hashlimit-mode srcip --hashlimit-name ddosflood -j RETURN
+{% if firewall_logging_enabled %}
+$IPT -A DDOS_PROTECT -j LOG --log-prefix "IPSET_DDOS: " --log-level 4
+{% endif %}
+$IPT -A DDOS_PROTECT -j SET --add-set BANDDOS src
+$IPT -A DDOS_PROTECT -j DROP
+{% endif %}
+
+{% if firewall_wireguard_enabled %}
+## WireGuard
+## Allow WireGuard port
+$IPT -A INPUT -i ${WAN} -p udp --dport {{ firewall_wireguard_port }} -j ACCEPT
+
+## Allow traffic on WireGuard interface
+$IPT -A INPUT -i {{ firewall_wireguard_interface }} -j ACCEPT
+$IPT -A OUTPUT -o {{ firewall_wireguard_interface }} -j ACCEPT
+
+## Allow forwarding for WireGuard
+$IPT -A FORWARD -i {{ firewall_wireguard_interface }} -j ACCEPT
+$IPT -A FORWARD -o {{ firewall_wireguard_interface }} -j ACCEPT
+
+## NAT for WireGuard clients
+$IPT -t nat -A POSTROUTING -s {{ firewall_wireguard_network }} -o ${WAN} -j MASQUERADE
+{% endif %}
+
+## Allow TCP ports
+$IPT -A INPUT -i ${WAN} -p tcp -m multiport --dports ${WPORT_TCP} -j ACCEPT
+
+{% if firewall_ports_udp | length > 0 %}
+## Allow UDP ports
+$IPT -A INPUT -i ${WAN} -p udp -m multiport --dports ${WPORT_UDP} -j ACCEPT
+{% endif %}
+
+{% if firewall_portscan_protection %}
+## Portscan protection
+{% if firewall_logging_enabled %}
+$IPT -A INPUT -p tcp -m multiport ! --dports ${WPORT_TCP} -j LOG --log-prefix "IPSET_PORTSCAN: " --log-level 4
+{% if firewall_ports_udp | length > 0 %}
+$IPT -A INPUT -p udp -m multiport ! --dports ${WPORT_UDP} -j LOG --log-prefix "IPSET_PORTSCAN: " --log-level 4
+{% endif %}
+{% endif %}
+$IPT -A INPUT -p tcp -m set ! --match-set BANPORT src -j SET --add-set BANPORT src
+$IPT -A INPUT -p udp -m set ! --match-set BANPORT src -j SET --add-set BANPORT src
+{% endif %}
+
+{% for rule in firewall_custom_rules %}
+## Custom rule
+{{ rule }}
+{% endfor %}
+
+echo "Firewall rules applied successfully"

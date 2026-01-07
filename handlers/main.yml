@@ -1,0 +1,10 @@
+---
+- name: Restart rsyslog
+  ansible.builtin.systemd:
+    name: rsyslog
+    state: restarted
+
+- name: Save iptables rules
+  ansible.builtin.shell: |
+    ipset save > /etc/iptables/ipsets
+    netfilter-persistent save

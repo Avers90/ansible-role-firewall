@@ -1,0 +1,40 @@
+---
+## Network interface (auto-detected if empty)
+firewall_wan_interface: ""
+firewall_wan_ip: ""
+
+## Allowed TCP ports (SSH always recommended)
+firewall_ports_tcp:
+  - 22
+
+## Allowed UDP ports
+firewall_ports_udp: []
+
+## Whitelist IPs (full access, bypasses all rules)
+firewall_whitelist_ips: []
+
+## WireGuard integration
+firewall_wireguard_enabled: false
+firewall_wireguard_port: 51820
+firewall_wireguard_interface: "wg0"
+firewall_wireguard_network: "{{ wireguard_address | default('10.0.0.0/24') | ansible.utils.ipaddr('network/prefix') }}"
+
+## DDoS protection settings
+firewall_ddos_enabled: true
+firewall_ddos_rate: "10/sec"
+firewall_ddos_burst: 20
+
+## Ban timeout in seconds (10 minutes default)
+firewall_ban_timeout: 600
+
+## Enable logging to separate files
+firewall_logging_enabled: true
+
+## Portscan protection (ban IPs hitting closed ports)
+firewall_portscan_protection: true
+
+## ICMP (ping) settings
+firewall_allow_ping: true
+
+## Additional custom rules (advanced)
+firewall_custom_rules: []
