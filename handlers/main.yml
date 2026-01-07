@@ -4,7 +4,8 @@
     name: rsyslog
     state: restarted
 
-- name: Save iptables rules
+- name: Apply and save iptables rules
   ansible.builtin.shell: |
+    /usr/local/sbin/iptables-rules.sh
     ipset save > /etc/iptables/ipsets
     netfilter-persistent save

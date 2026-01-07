@@ -68,7 +68,6 @@
     - /var/log/ipset_ddos.log
     - /var/log/ipset_portscan.log
   when: firewall_logging_enabled
-  notify: Restart rsyslog
 
 - name: firewall | Deploy logrotate configuration
   ansible.builtin.template:
@@ -86,23 +85,7 @@
     owner: root
     group: root
     mode: "0700"
-  register: firewall_script
-
-- name: firewall | Apply iptables rules
-  ansible.builtin.shell: /usr/local/sbin/iptables-rules.sh
-  when: firewall_script.changed
-
-- name: firewall | Ensure rules are applied
-  ansible.builtin.shell: /usr/local/sbin/iptables-rules.sh
-  changed_when: false
-
-- name: firewall | Save ipset rules
-  ansible.builtin.shell: ipset save > /etc/iptables/ipsets
-  changed_when: false
-
-- name: firewall | Save iptables rules (netfilter-persistent)
-  ansible.builtin.shell: netfilter-persistent save
-  changed_when: false
+  notify: Apply and save iptables rules
 
 - name: firewall | Display completion message
   ansible.builtin.debug:
@@ -123,4 +106,3 @@
         ipset -L BANDDOS           # View banned IPs (DDoS)
         ipset flush BANPORT        # Clear portscan bans
         netfilter-persistent save  # Save current rules
-        netfilter-persistent reload # Reload saved rules
