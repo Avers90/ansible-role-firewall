@@ -55,6 +55,21 @@
   notify: Restart rsyslog
   when: firewall_logging_enabled
 
+- name: firewall | Create log files with correct permissions
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: touch
+    owner: syslog
+    group: adm
+    mode: "0640"
+    modification_time: preserve
+    access_time: preserve
+  loop:
+    - /var/log/ipset_ddos.log
+    - /var/log/ipset_portscan.log
+  when: firewall_logging_enabled
+  notify: Restart rsyslog
+
 - name: firewall | Deploy logrotate configuration
   ansible.builtin.template:
     src: logrotate-ipset.j2
