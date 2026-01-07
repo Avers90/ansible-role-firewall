@@ -47,8 +47,8 @@
 
 - name: firewall | Deploy rsyslog configuration
   ansible.builtin.template:
-    src: rsyslog-ipset.conf.j2
-    dest: /etc/rsyslog.d/ipset.conf
+    src: 10-rsyslog-ipset.conf.j2
+    dest: /etc/rsyslog.d/10-ipset.conf
     owner: root
     group: root
     mode: "0644"
