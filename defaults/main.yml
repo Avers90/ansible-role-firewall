@@ -10,14 +10,18 @@ firewall_ports_tcp:
 ## Allowed UDP ports
 firewall_ports_udp: []
 
-## Whitelist IPs (full access, bypasses all rules)
+## Whitelist IPs (full access, never banned)
+## These IPs bypass all filtering and are never added to ban lists
 firewall_whitelist_ips: []
 
 ## WireGuard integration
 firewall_wireguard_enabled: false
 firewall_wireguard_port: "{{ wireguard_port | default('51820') }}"
 firewall_wireguard_interface: "{{ wireguard_interface | default('wg0') }}"
-firewall_wireguard_network: "{{ wireguard_address | default('10.0.0.1/24') | ansible.utils.ipaddr('network/prefix') }}"
+firewall_wireguard_network: "{{ wireguard_address | default('10.0.0.0/24') | ansible.utils.ipaddr('network/prefix') }}"
+
+## Automatically add WireGuard network to whitelist
+firewall_wireguard_whitelist: true
 
 ## DDoS protection settings
 firewall_ddos_enabled: true

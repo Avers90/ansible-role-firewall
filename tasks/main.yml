@@ -26,6 +26,14 @@
     firewall_wan_interface_actual: "{{ firewall_wan_interface | default(ansible_default_ipv4.interface, true) }}"
     firewall_wan_ip_actual: "{{ firewall_wan_ip | default(ansible_default_ipv4.address, true) }}"
 
+- name: firewall | Build whitelist
+  ansible.builtin.set_fact:
+    firewall_whitelist_combined: >-
+      {{
+        firewall_whitelist_ips +
+        ([firewall_wireguard_network] if (firewall_wireguard_enabled and firewall_wireguard_whitelist) else [])
+      }}
+
 - name: firewall | Display network configuration
   ansible.builtin.debug:
     msg: |
@@ -34,6 +42,7 @@
       TCP Ports: {{ firewall_ports_tcp | join(', ') }}
       UDP Ports: {{ firewall_ports_udp | join(', ') if firewall_ports_udp | length > 0 else 'none' }}
       WireGuard: {{ 'enabled (' + firewall_wireguard_interface + ')' if firewall_wireguard_enabled else 'disabled' }}
+      Whitelist: {{ firewall_whitelist_combined | join(', ') if firewall_whitelist_combined | length > 0 else 'none' }}
 
 - name: firewall | Create ipset list BANPORT
   ansible.builtin.shell: |
@@ -43,6 +52,22 @@
 - name: firewall | Create ipset list BANDDOS
   ansible.builtin.shell: |
     ipset list BANDDOS &>/dev/null || ipset create BANDDOS nethash hashsize 16348 maxelem 131072 timeout {{ firewall_ban_timeout }}
+  changed_when: false
+
+- name: firewall | Create ipset whitelist
+  ansible.builtin.shell: |
+    ipset list WHITELIST &>/dev/null || ipset create WHITELIST hash:net
+  changed_when: false
+
+- name: firewall | Flush whitelist before populating
+  ansible.builtin.shell: ipset flush WHITELIST
+  changed_when: false
+  when: firewall_whitelist_combined | length > 0
+
+- name: firewall | Add IPs to whitelist
+  ansible.builtin.shell: ipset add WHITELIST {{ item }} -exist
+  loop: "{{ firewall_whitelist_combined }}"
+  when: firewall_whitelist_combined | length > 0
   changed_when: false
 
 - name: firewall | Deploy rsyslog configuration
@@ -94,6 +119,7 @@
 
       Allowed TCP: {{ firewall_ports_tcp | join(', ') }}
       Allowed UDP: {{ firewall_ports_udp | join(', ') if firewall_ports_udp | length > 0 else 'none' }}
+      Whitelist: {{ firewall_whitelist_combined | join(', ') if firewall_whitelist_combined | length > 0 else 'none' }}
       {% if firewall_wireguard_enabled %}
       WireGuard: {{ firewall_wireguard_interface }} (port {{ firewall_wireguard_port }}/udp)
       WireGuard NAT: {{ firewall_wireguard_network }} -> {{ firewall_wan_interface_actual }}
@@ -102,6 +128,7 @@
       Rules saved via netfilter-persistent
 
       Useful commands:
+        ipset -L WHITELIST         # View whitelisted IPs
         ipset -L BANPORT           # View banned IPs (portscan)
         ipset -L BANDDOS           # View banned IPs (DDoS)
         ipset flush BANPORT        # Clear portscan bans

@@ -1,6 +1,5 @@
 #!/bin/bash
 ## {{ ansible_managed }}
-## Firewall rules managed by Ansible
 
 IPT="iptables"
 
@@ -17,6 +16,7 @@ WPORT_UDP={{ firewall_ports_udp | join(',') }}
 ## Ensure ipset lists exist
 ipset list BANPORT &>/dev/null || ipset create BANPORT hash:ip timeout {{ firewall_ban_timeout }}
 ipset list BANDDOS &>/dev/null || ipset create BANDDOS nethash hashsize 16348 maxelem 131072 timeout {{ firewall_ban_timeout }}
+ipset list WHITELIST &>/dev/null || ipset create WHITELIST hash:net
 
 ## Clear all rules
 $IPT -F
@@ -48,12 +48,8 @@ $IPT -A INPUT -p icmp --icmp-type time-exceeded -j ACCEPT
 $IPT -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
 {% endif %}
 
-{% if firewall_whitelist_ips | length > 0 %}
-## Whitelist IPs (full access)
-{% for ip in firewall_whitelist_ips %}
-$IPT -A INPUT -s {{ ip }} -j ACCEPT
-{% endfor %}
-{% endif %}
+## Whitelist IPs (full access, never banned)
+$IPT -A INPUT -m set --match-set WHITELIST src -j ACCEPT
 
 ## Allow all outgoing connections
 $IPT -A OUTPUT -o ${WAN} -j ACCEPT
@@ -87,18 +83,11 @@ $IPT -A DDOS_PROTECT -j DROP
 
 {% if firewall_wireguard_enabled %}
 ## WireGuard
-## Allow WireGuard port
 $IPT -A INPUT -i ${WAN} -p udp --dport {{ firewall_wireguard_port }} -j ACCEPT
-
-## Allow traffic on WireGuard interface
 $IPT -A INPUT -i {{ firewall_wireguard_interface }} -j ACCEPT
 $IPT -A OUTPUT -o {{ firewall_wireguard_interface }} -j ACCEPT
-
-## Allow forwarding for WireGuard
 $IPT -A FORWARD -i {{ firewall_wireguard_interface }} -j ACCEPT
 $IPT -A FORWARD -o {{ firewall_wireguard_interface }} -j ACCEPT
-
-## NAT for WireGuard clients
 $IPT -t nat -A POSTROUTING -s {{ firewall_wireguard_network }} -o ${WAN} -j MASQUERADE
 {% endif %}
 
@@ -123,7 +112,6 @@ $IPT -A INPUT -p udp -m set ! --match-set BANPORT src -j SET --add-set BANPORT s
 {% endif %}
 
 {% for rule in firewall_custom_rules %}
-## Custom rule
 {{ rule }}
 {% endfor %}
 
