@@ -54,15 +54,17 @@
     ipset list BANDDOS &>/dev/null || ipset create BANDDOS nethash hashsize 16348 maxelem 131072 timeout {{ firewall_ban_timeout }}
   changed_when: false
 
-- name: firewall | Create ipset whitelist
+- name: firewall | Create and flush ipset whitelist
   ansible.builtin.shell: |
     ipset list WHITELIST &>/dev/null || ipset create WHITELIST hash:net
+    ipset flush WHITELIST
   changed_when: false
 
-- name: firewall | Flush whitelist before populating
-  ansible.builtin.shell: ipset flush WHITELIST
-  changed_when: false
+- name: firewall | Add IPs to whitelist
+  ansible.builtin.shell: ipset add WHITELIST {{ item }} -exist
+  loop: "{{ firewall_whitelist_combined }}"
   when: firewall_whitelist_combined | length > 0
+  changed_when: false
 
 - name: firewall | Add IPs to whitelist
   ansible.builtin.shell: ipset add WHITELIST {{ item }} -exist
