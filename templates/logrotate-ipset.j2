@@ -5,8 +5,5 @@
     compress
     missingok
     notifempty
-    create 640 syslog adm
-    postrotate
-        systemctl reload rsyslog >/dev/null 2>&1 || true
-    endscript
+    copytruncate
 }

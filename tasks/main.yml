@@ -44,34 +44,6 @@
       WireGuard: {{ 'enabled (' + firewall_wireguard_interface + ')' if firewall_wireguard_enabled else 'disabled' }}
       Whitelist: {{ firewall_whitelist_combined | join(', ') if firewall_whitelist_combined | length > 0 else 'none' }}
 
-- name: firewall | Create ipset list BANPORT
-  ansible.builtin.shell: |
-    ipset list BANPORT >/dev/null 2>&1 || ipset create BANPORT hash:ip timeout {{ firewall_ban_timeout }}
-  changed_when: false
-
-- name: firewall | Create ipset list BANDDOS
-  ansible.builtin.shell: |
-    ipset list BANDDOS >/dev/null 2>&1 || ipset create BANDDOS nethash hashsize 16348 maxelem 131072 timeout {{ firewall_ban_timeout }}
-  changed_when: false
-
-- name: firewall | Create and flush ipset whitelist
-  ansible.builtin.shell: |
-    ipset list WHITELIST >/dev/null 2>&1 || ipset create WHITELIST hash:net
-    ipset flush WHITELIST
-  changed_when: false
-
-- name: firewall | Add IPs to whitelist
-  ansible.builtin.shell: ipset add WHITELIST {{ item }} -exist
-  loop: "{{ firewall_whitelist_combined }}"
-  when: firewall_whitelist_combined | length > 0
-  changed_when: false
-
-- name: firewall | Add IPs to whitelist
-  ansible.builtin.shell: ipset add WHITELIST {{ item }} -exist
-  loop: "{{ firewall_whitelist_combined }}"
-  when: firewall_whitelist_combined | length > 0
-  changed_when: false
-
 - name: firewall | Deploy rsyslog configuration
   ansible.builtin.template:
     src: 10-rsyslog-ipset.conf.j2

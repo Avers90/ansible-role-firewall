@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ## {{ ansible_managed }}
 
 IPT="iptables"
@@ -13,12 +13,18 @@ WPORT_TCP={{ firewall_ports_tcp | join(',') }}
 WPORT_UDP={{ firewall_ports_udp | join(',') }}
 {% endif %}
 
-## Ensure ipset lists exist
-ipset list BANPORT &>/dev/null || ipset create BANPORT hash:ip timeout {{ firewall_ban_timeout }}
-ipset list BANDDOS &>/dev/null || ipset create BANDDOS nethash hashsize 16348 maxelem 131072 timeout {{ firewall_ban_timeout }}
-ipset list WHITELIST &>/dev/null || ipset create WHITELIST hash:net
+## Create ipset lists if not exist
+ipset list BANPORT >/dev/null 2>&1 || ipset create BANPORT hash:ip timeout {{ firewall_ban_timeout }}
+ipset list BANDDOS >/dev/null 2>&1 || ipset create BANDDOS nethash hashsize 16348 maxelem 131072 timeout {{ firewall_ban_timeout }}
+ipset list WHITELIST >/dev/null 2>&1 || ipset create WHITELIST hash:net
 
-## Clear all rules
+## Populate whitelist
+ipset flush WHITELIST
+{% for ip in firewall_whitelist_combined %}
+ipset add WHITELIST {{ ip }} -exist
+{% endfor %}
+
+## Clear all iptables rules
 $IPT -F
 $IPT -F -t nat
 $IPT -F -t mangle

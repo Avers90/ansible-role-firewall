@@ -2,6 +2,9 @@
 
 Configure iptables firewall with ipset, DDoS protection, and portscan blocking.
 
+Script took from [iptables-ipset](https://gitflic.ru/project/serveradmin/iptables-ipset/file?branch=master).  
+Change some logic in iptables-rules.sh.j2.
+
 ## Requirements
 
 - Debian/Ubuntu
