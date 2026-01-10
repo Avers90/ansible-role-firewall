@@ -93,6 +93,9 @@ Rules are saved via `netfilter-persistent` and automatically restored on boot.
 ipset -L BANPORT
 ipset -L BANDDOS
 
+# View whitelist IPs
+ipset -L WHITELIST
+
 # Clear all bans
 ipset flush BANPORT
 ipset flush BANDDOS
@@ -101,11 +104,12 @@ ipset flush BANDDOS
 ipset del BANPORT 1.2.3.4
 
 # View current rules
-iptables -L -n -v
+iptables -vnL
 
 # View logs
-tail -f /var/log/ipset_ddos.log
-tail -f /var/log/ipset_portscan.log
+tail -f /var/log/ipset/ddos.log
+tail -f /var/log/ipset/portscan.log
+tail -f /var/log/ipset/whitelist.log
 
 # Save current rules
 netfilter-persistent save

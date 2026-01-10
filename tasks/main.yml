@@ -54,6 +54,15 @@
   notify: Restart rsyslog
   when: firewall_logging_enabled
 
+- name: firewall | Create ipset log directory
+  ansible.builtin.file:
+    path: /var/log/ipset
+    state: directory
+    owner: syslog
+    group: adm
+    mode: "0750"
+  when: firewall_logging_enabled
+
 - name: firewall | Create log files with correct permissions
   ansible.builtin.file:
     path: "{{ item }}"
@@ -64,8 +73,9 @@
     modification_time: preserve
     access_time: preserve
   loop:
-    - /var/log/ipset_ddos.log
-    - /var/log/ipset_portscan.log
+    - /var/log/ipset/ddos.log
+    - /var/log/ipset/portscan.log
+    - /var/log/ipset/whitelist.log
   when: firewall_logging_enabled
 
 - name: firewall | Deploy logrotate configuration
@@ -99,7 +109,7 @@
       WireGuard NAT: {{ firewall_wireguard_network }} -> {{ firewall_wan_interface_actual }}
       {% endif %}
 
-      Rules saved via netfilter-persistent
+      Logs: /var/log/ipset/
 
       Useful commands:
         ipset -L WHITELIST         # View whitelisted IPs

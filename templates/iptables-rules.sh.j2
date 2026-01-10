@@ -54,6 +54,11 @@ $IPT -A INPUT -p icmp --icmp-type time-exceeded -j ACCEPT
 $IPT -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
 {% endif %}
 
+{% if firewall_logging_enabled %}
+## Log whitelisted IPs (rate limited)
+$IPT -A INPUT -m set --match-set WHITELIST src -m limit --limit 10/min --limit-burst 20 -j LOG --log-prefix "IPSET_WHITELIST: " --log-level 4
+{% endif %}
+
 ## Whitelist IPs (full access, never banned)
 $IPT -A INPUT -m set --match-set WHITELIST src -j ACCEPT
 
