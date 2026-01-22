@@ -131,8 +131,8 @@ netfilter-persistent save
 | `/etc/iptables/ipsets` | Saved ipset lists |
 | `/etc/rsyslog.d/10-ipset.conf` | Rsyslog configuration |
 | `/etc/logrotate.d/ipset-iptables` | Logrotate configuration |
-| `/var/log/ipset_ddos.log` | DDoS attack log |
-| `/var/log/ipset_portscan.log` | Portscan log |
+| `/var/log/ipset/ddos.log` | DDoS attack log |
+| `/var/log/ipset/portscan.log` | Portscan log |
 
 ## License
 
