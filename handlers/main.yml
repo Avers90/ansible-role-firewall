@@ -9,3 +9,4 @@
     /usr/local/sbin/iptables-rules.sh
     ipset save > /etc/iptables/ipsets
     netfilter-persistent save
+  changed_when: true

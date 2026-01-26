@@ -54,11 +54,15 @@
   notify: Restart rsyslog
   when: firewall_logging_enabled
 
+- name: firewall | Determine syslog user
+  ansible.builtin.set_fact:
+    firewall_syslog_user: "{{ 'syslog' if ansible_distribution == 'Ubuntu' else 'root' }}"
+
 - name: firewall | Create ipset log directory
   ansible.builtin.file:
     path: /var/log/ipset
     state: directory
-    owner: syslog
+    owner: "{{ firewall_syslog_user }}"
     group: adm
     mode: "0750"
   when: firewall_logging_enabled
@@ -67,7 +71,7 @@
   ansible.builtin.file:
     path: "{{ item }}"
     state: touch
-    owner: syslog
+    owner: "{{ firewall_syslog_user }}"
     group: adm
     mode: "0640"
     modification_time: preserve
