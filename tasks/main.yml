@@ -1,8 +1,8 @@
 ---
 - name: firewall | Fail if distro is not supported
   ansible.builtin.fail:
-    msg: "Distribution '{{ ansible_distribution }}' is not supported. Supported: Debian, Ubuntu"
-  when: ansible_distribution not in ['Debian', 'Ubuntu']
+    msg: "Distribution '{{ ansible_facts['distribution'] }}' is not supported. Supported: Debian, Ubuntu"
+  when: ansible_facts['distribution'] not in ['Debian', 'Ubuntu']
 
 - name: firewall | Install dependencies
   ansible.builtin.apt:
@@ -23,8 +23,8 @@
 
 - name: firewall | Set WAN interface fact
   ansible.builtin.set_fact:
-    firewall_wan_interface_actual: "{{ firewall_wan_interface | default(ansible_default_ipv4.interface, true) }}"
-    firewall_wan_ip_actual: "{{ firewall_wan_ip | default(ansible_default_ipv4.address, true) }}"
+    firewall_wan_interface_actual: "{{ firewall_wan_interface | default(ansible_facts['default_ipv4']['interface'], true) }}"
+    firewall_wan_ip_actual: "{{ firewall_wan_ip | default(ansible_facts['default_ipv4']['address'], true) }}"
 
 - name: firewall | Build whitelist
   ansible.builtin.set_fact:
@@ -52,11 +52,11 @@
     group: root
     mode: "0644"
   notify: Restart rsyslog
-  when: firewall_logging_enabled
+  when: firewall_logging_enabled | bool
 
 - name: firewall | Determine syslog user
   ansible.builtin.set_fact:
-    firewall_syslog_user: "{{ 'syslog' if ansible_distribution == 'Ubuntu' else 'root' }}"
+    firewall_syslog_user: "{{ 'syslog' if ansible_facts['distribution'] == 'Ubuntu' else 'root' }}"
 
 - name: firewall | Create ipset log directory
   ansible.builtin.file:
@@ -65,7 +65,7 @@
     owner: "{{ firewall_syslog_user }}"
     group: adm
     mode: "0750"
-  when: firewall_logging_enabled
+  when: firewall_logging_enabled | bool
 
 - name: firewall | Create log files with correct permissions
   ansible.builtin.file:
@@ -80,7 +80,7 @@
     - /var/log/ipset/ddos.log
     - /var/log/ipset/portscan.log
     - /var/log/ipset/whitelist.log
-  when: firewall_logging_enabled
+  when: firewall_logging_enabled | bool
 
 - name: firewall | Deploy logrotate configuration
   ansible.builtin.template:
@@ -89,7 +89,7 @@
     owner: root
     group: root
     mode: "0644"
-  when: firewall_logging_enabled
+  when: firewall_logging_enabled | bool
 
 - name: firewall | Deploy iptables rules script
   ansible.builtin.template:
