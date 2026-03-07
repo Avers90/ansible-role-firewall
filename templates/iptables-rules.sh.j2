@@ -83,7 +83,11 @@ $IPT -A INPUT -m set --match-set BANDDOS src -j DROP
 {% if firewall_ddos_enabled %}
 ## DDoS protection
 $IPT -N DDOS_PROTECT 2>/dev/null || $IPT -F DDOS_PROTECT
+{% if firewall_ddos_excluded_ports | length > 0 %}
+$IPT -A INPUT -p tcp --syn -m multiport ! --dports {{ firewall_ddos_excluded_ports | join(',') }} -j DDOS_PROTECT
+{% else %}
 $IPT -A INPUT -p tcp --syn -j DDOS_PROTECT
+{% endif %}
 $IPT -A DDOS_PROTECT -m hashlimit --hashlimit {{ firewall_ddos_rate }} --hashlimit-burst {{ firewall_ddos_burst }} --hashlimit-mode srcip --hashlimit-name ddosflood -j RETURN
 {% if firewall_logging_enabled %}
 $IPT -A DDOS_PROTECT -j LOG --log-prefix "IPSET_DDOS: " --log-level 4

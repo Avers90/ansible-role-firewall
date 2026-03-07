@@ -28,6 +28,9 @@ firewall_ddos_enabled: true
 firewall_ddos_rate: "10/sec"
 firewall_ddos_burst: 20
 
+## Ports excluded from DDoS rate limiting (e.g. VPN ports where clients reconnect frequently)
+firewall_ddos_excluded_ports: []
+
 ## Ban timeout in seconds (10 minutes default)
 firewall_ban_timeout: 600
 
