@@ -8,9 +8,9 @@ WAN={{ firewall_wan_interface_actual }}
 WAN_IP={{ firewall_wan_ip_actual }}
 
 ## Port lists
-WPORT_TCP={{ firewall_ports_tcp | join(',') }}
-{% if firewall_ports_udp | length > 0 %}
-WPORT_UDP={{ firewall_ports_udp | join(',') }}
+WPORT_TCP={{ firewall_public_ports_tcp | join(',') }}
+{% if firewall_public_ports_udp | length > 0 %}
+WPORT_UDP={{ firewall_public_ports_udp | join(',') }}
 {% endif %}
 
 ## Create ipset lists if not exist
@@ -109,7 +109,7 @@ $IPT -t nat -A POSTROUTING -s {{ firewall_wireguard_network }} -o ${WAN} -j MASQ
 ## Allow TCP ports
 $IPT -A INPUT -i ${WAN} -p tcp -m multiport --dports ${WPORT_TCP} -j ACCEPT
 
-{% if firewall_ports_udp | length > 0 %}
+{% if firewall_public_ports_udp | length > 0 %}
 ## Allow UDP ports
 $IPT -A INPUT -i ${WAN} -p udp -m multiport --dports ${WPORT_UDP} -j ACCEPT
 {% endif %}
@@ -118,7 +118,7 @@ $IPT -A INPUT -i ${WAN} -p udp -m multiport --dports ${WPORT_UDP} -j ACCEPT
 ## Portscan protection
 {% if firewall_logging_enabled %}
 $IPT -A INPUT -p tcp -m multiport ! --dports ${WPORT_TCP} -j LOG --log-prefix "IPSET_PORTSCAN: " --log-level 4
-{% if firewall_ports_udp | length > 0 %}
+{% if firewall_public_ports_udp | length > 0 %}
 $IPT -A INPUT -p udp -m multiport ! --dports ${WPORT_UDP} -j LOG --log-prefix "IPSET_PORTSCAN: " --log-level 4
 {% endif %}
 {% endif %}

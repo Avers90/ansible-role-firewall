@@ -25,8 +25,8 @@ Change some logic in iptables-rules.sh.j2.
 |----------|---------|-------------|
 | `firewall_wan_interface` | auto-detect | External network interface |
 | `firewall_wan_ip` | auto-detect | External IP address |
-| `firewall_ports_tcp` | `[22]` | Allowed TCP ports |
-| `firewall_ports_udp` | `[]` | Allowed UDP ports |
+| `firewall_public_ports_tcp` | `[22]` | TCP ports open to everyone on the internet |
+| `firewall_public_ports_udp` | `[]` | UDP ports open to everyone on the internet |
 | `firewall_whitelist_ips` | `[]` | IPs with full access |
 | `firewall_wireguard_enabled` | `false` | Enable WireGuard rules |
 | `firewall_wireguard_port` | `51820` | WireGuard listen port |
@@ -46,26 +46,26 @@ Change some logic in iptables-rules.sh.j2.
 ### Basic server (SSH only)
 
 ```yaml
-firewall_ports_tcp:
+firewall_public_ports_tcp:
   - 22
 ```
 
 ### Web server
 
 ```yaml
-firewall_ports_tcp:
+firewall_public_ports_tcp:
   - 22
   - 80
   - 443
 
-firewall_ports_udp:
+firewall_public_ports_udp:
   - 443
 ```
 
 ### VPN server (WireGuard)
 
 ```yaml
-firewall_ports_tcp:
+firewall_public_ports_tcp:
   - 22
 
 firewall_wireguard_enabled: true

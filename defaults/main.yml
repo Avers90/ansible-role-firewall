@@ -3,12 +3,12 @@
 firewall_wan_interface: ""
 firewall_wan_ip: ""
 
-## Allowed TCP ports (SSH always recommended)
-firewall_ports_tcp:
+## Public TCP ports — open to everyone on the internet (SSH always recommended)
+firewall_public_ports_tcp:
   - 22
 
-## Allowed UDP ports
-firewall_ports_udp: []
+## Public UDP ports — open to everyone on the internet
+firewall_public_ports_udp: []
 
 ## Whitelist IPs (full access, never banned)
 ## These IPs bypass all filtering and are never added to ban lists

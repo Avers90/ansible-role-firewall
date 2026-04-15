@@ -39,8 +39,8 @@
     msg: |
       WAN Interface: {{ firewall_wan_interface_actual }}
       WAN IP: {{ firewall_wan_ip_actual }}
-      TCP Ports: {{ firewall_ports_tcp | join(', ') }}
-      UDP Ports: {{ firewall_ports_udp | join(', ') if firewall_ports_udp | length > 0 else 'none' }}
+      TCP Ports: {{ firewall_public_ports_tcp | join(', ') }}
+      UDP Ports: {{ firewall_public_ports_udp | join(', ') if firewall_public_ports_udp | length > 0 else 'none' }}
       WireGuard: {{ 'enabled (' + firewall_wireguard_interface + ')' if firewall_wireguard_enabled else 'disabled' }}
       Whitelist: {{ firewall_whitelist_combined | join(', ') if firewall_whitelist_combined | length > 0 else 'none' }}
 
@@ -105,8 +105,8 @@
     msg: |
       Firewall configured successfully!
 
-      Allowed TCP: {{ firewall_ports_tcp | join(', ') }}
-      Allowed UDP: {{ firewall_ports_udp | join(', ') if firewall_ports_udp | length > 0 else 'none' }}
+      Allowed TCP: {{ firewall_public_ports_tcp | join(', ') }}
+      Allowed UDP: {{ firewall_public_ports_udp | join(', ') if firewall_public_ports_udp | length > 0 else 'none' }}
       Whitelist: {{ firewall_whitelist_combined | join(', ') if firewall_whitelist_combined | length > 0 else 'none' }}
       {% if firewall_wireguard_enabled %}
       WireGuard: {{ firewall_wireguard_interface }} (port {{ firewall_wireguard_port }}/udp)
