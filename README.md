@@ -7,7 +7,7 @@ Change some logic in iptables-rules.sh.j2.
 
 ## Requirements
 
-- Debian/Ubuntu
+- Debian (bullseye, bookworm), Ubuntu (focal, jammy, noble, resolute)
 
 ## Features
 
