@@ -43,5 +43,9 @@ firewall_portscan_protection: true
 ## ICMP (ping) settings
 firewall_allow_ping: true
 
+## Restricted TCP ports — open only to specific source IPs (not exposed publicly)
+## Format: [{port: 27015, sources: ["1.2.3.4", "5.6.7.8"]}]
+firewall_restricted_ports_tcp: []
+
 ## Additional custom rules (advanced)
 firewall_custom_rules: []

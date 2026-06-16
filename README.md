@@ -39,6 +39,7 @@ Change some logic in iptables-rules.sh.j2.
 | `firewall_logging_enabled` | `true` | Enable logging |
 | `firewall_portscan_protection` | `true` | Enable portscan protection |
 | `firewall_allow_ping` | `true` | Allow ICMP ping |
+| `firewall_restricted_ports_tcp` | `[]` | TCP ports open only to specific source IPs |
 | `firewall_custom_rules` | `[]` | Additional iptables rules |
 
 ## Examples
@@ -80,6 +81,15 @@ firewall_wireguard_network: "10.0.0.0/24"
 firewall_whitelist_ips:
   - "203.0.113.10"
   - "198.51.100.0/24"
+```
+
+### Port open only for specific IPs (e.g. management port)
+
+```yaml
+firewall_restricted_ports_tcp:
+  - port: 27015
+    sources:
+      - "203.0.113.10"   # management server
 ```
 
 ## Persistence

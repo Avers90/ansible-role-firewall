@@ -106,6 +106,15 @@ $IPT -A FORWARD -o {{ firewall_wireguard_interface }} -j ACCEPT
 $IPT -t nat -A POSTROUTING -s {{ firewall_wireguard_network }} -o ${WAN} -j MASQUERADE
 {% endif %}
 
+{% if firewall_restricted_ports_tcp | length > 0 %}
+## Restricted TCP ports — open only to specific source IPs
+{% for rule in firewall_restricted_ports_tcp %}
+{% for src in rule.sources %}
+$IPT -A INPUT -i ${WAN} -p tcp --dport {{ rule.port }} -s {{ src }} -j ACCEPT
+{% endfor %}
+{% endfor %}
+{% endif %}
+
 ## Allow TCP ports
 $IPT -A INPUT -i ${WAN} -p tcp -m multiport --dports ${WPORT_TCP} -j ACCEPT
 
