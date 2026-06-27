@@ -19,6 +19,22 @@ Change some logic in iptables-rules.sh.j2.
 - Separate log files with rotation
 - Persistent rules across reboots
 
+## Rule ordering (important)
+
+Intentionally-public ports (`firewall_public_ports_tcp`/`_udp`, WireGuard,
+restricted ports) are ACCEPTed **before** the `BANPORT`/`BANDDOS` drop rules and
+DDoS protection. This is deliberate: on CGNAT / mobile carriers many subscribers
+share one public IP, so a single scanner or abuser behind that IP would otherwise
+land the shared IP in `BANPORT` and lock out every legit user on the host — their
+packets get dropped on the public service port (e.g. 443) too. By accepting the
+public ports first, the auto-ban only guards the *closed* ports, while the public
+service stays reachable.
+
+Trade-off: iptables-layer SYN-flood throttling (DDOS_PROTECT) therefore applies to
+the closed ports only. Abuse on public web/VPN ports must be handled upstream
+(nginx rate-limiting, fail2ban). SSH (22) remains covered by its own fail2ban
+chain, which is inserted ahead of these rules.
+
 ## Role Variables
 
 | Variable | Default | Description |
