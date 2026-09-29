@@ -28,6 +28,13 @@ firewall_wireguard_network: "{{ wireguard_address | default('10.0.0.0/24') | ans
 ## Server-side only, applies to new TCP connections, no client changes needed.
 firewall_wireguard_mss: 0
 
+## Extra public UDP ports redirected to firewall_wireguard_port
+## (nat PREROUTING REDIRECT). The server keeps listening on its real port; these
+## are additional entry points, e.g. [443] for carriers that drop non-standard
+## UDP ports. No INPUT rule needed: filter sees the packet already rewritten to
+## firewall_wireguard_port. Clients opt in by changing only the Endpoint port.
+firewall_wireguard_extra_ports: []
+
 ## Automatically add WireGuard network to whitelist
 firewall_wireguard_whitelist: true
 
