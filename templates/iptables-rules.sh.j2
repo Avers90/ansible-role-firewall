@@ -159,4 +159,25 @@ $IPT -A INPUT -p udp -m set ! --match-set BANPORT src -j SET --add-set BANPORT s
 {{ rule }}
 {% endfor %}
 
+{% if firewall_ipv6_block %}
+## --- IPv6: inbound closed, outbound open ---
+## None of the rules above apply to IPv6, so without this a host with a public
+## v6 address exposes every listener (incl. [::]:51820) with no whitelist, bans
+## or rate limits. Only replies, loopback and ICMPv6 get in: ICMPv6 carries
+## Neighbor Discovery / Router Advertisements and Packet Too Big — dropping it
+## breaks v6 outright. DHCPv6 replies come from link-local, not tracked by conntrack.
+if command -v ip6tables >/dev/null 2>&1; then
+  IP6T="ip6tables"
+  $IP6T -F
+  $IP6T -X 2>/dev/null
+  $IP6T -P INPUT DROP
+  $IP6T -P FORWARD DROP
+  $IP6T -P OUTPUT ACCEPT
+  $IP6T -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+  $IP6T -A INPUT -i lo -j ACCEPT
+  $IP6T -A INPUT -p ipv6-icmp -j ACCEPT
+  $IP6T -A INPUT -s fe80::/10 -p udp --dport 546 -j ACCEPT
+fi
+{% endif %}
+
 echo "Firewall rules applied successfully"

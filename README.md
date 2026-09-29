@@ -61,6 +61,7 @@ Port variables end with the protocol (`_tcp` / `_udp`).
 | `firewall_portscan_protection` | `true` | Enable portscan protection |
 | `firewall_allow_ping` | `true` | Allow ICMP ping |
 | `firewall_restricted_ports_tcp` | `[]` | TCP ports open only to specific source IPs |
+| `firewall_ipv6_block` | `false` | Close inbound IPv6: ip6tables INPUT/FORWARD DROP, allow only replies, `lo`, ICMPv6 (ND/RA/PTB) and DHCPv6 replies; OUTPUT stays open |
 | `firewall_custom_rules` | `[]` | Additional iptables rules |
 
 ## Examples

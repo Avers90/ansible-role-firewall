@@ -64,5 +64,10 @@ firewall_allow_ping: true
 ## Format: [{port: 27015, sources: ["1.2.3.4", "5.6.7.8"]}]
 firewall_restricted_ports_tcp: []
 
+## Close inbound IPv6 (ip6tables: INPUT/FORWARD DROP, OUTPUT ACCEPT; only
+## replies, loopback, ICMPv6 and DHCPv6 replies allowed). Without it the IPv4
+## rules above do not cover IPv6 at all. Default off: enabling flushes ip6tables.
+firewall_ipv6_block: false
+
 ## Additional custom rules (advanced)
 firewall_custom_rules: []
