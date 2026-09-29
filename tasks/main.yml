@@ -109,7 +109,7 @@
       Allowed UDP: {{ firewall_public_ports_udp | join(', ') if firewall_public_ports_udp | length > 0 else 'none' }}
       Whitelist: {{ firewall_whitelist_combined | join(', ') if firewall_whitelist_combined | length > 0 else 'none' }}
       {% if firewall_wireguard_enabled %}
-      WireGuard: {{ firewall_wireguard_interface }} (port {{ firewall_wireguard_port }}/udp)
+      WireGuard: {{ firewall_wireguard_interface }} (port {{ firewall_wireguard_port_udp }}/udp)
       WireGuard NAT: {{ firewall_wireguard_network }} -> {{ firewall_wan_interface_actual }}
       {% endif %}
 

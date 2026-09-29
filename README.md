@@ -37,6 +37,10 @@ chain, which is inserted ahead of these rules.
 
 ## Role Variables
 
+Port variables end with the protocol (`_tcp` / `_udp`). The old names
+`firewall_wireguard_port`, `firewall_wireguard_extra_udp_ports` and
+`firewall_ddos_excluded_ports` still work as deprecated fallbacks.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `firewall_wan_interface` | auto-detect | External network interface |
@@ -45,14 +49,15 @@ chain, which is inserted ahead of these rules.
 | `firewall_public_ports_udp` | `[]` | UDP ports open to everyone on the internet |
 | `firewall_whitelist_ips` | `[]` | IPs with full access |
 | `firewall_wireguard_enabled` | `false` | Enable WireGuard rules |
-| `firewall_wireguard_port` | `51820` | WireGuard listen port |
+| `firewall_wireguard_port_udp` | `51820` | WireGuard listen port |
 | `firewall_wireguard_interface` | `wg0` | WireGuard interface name |
 | `firewall_wireguard_network` | `10.0.0.0/24` | WireGuard network CIDR |
 | `firewall_wireguard_mss` | `0` | TCP MSS clamp for forwarded tunnel traffic (`0` = off, e.g. `1240` for inner MTU 1280); lowers MSS only, both directions |
-| `firewall_wireguard_extra_udp_ports` | `[]` | Extra UDP ports redirected (nat REDIRECT) to `firewall_wireguard_port`, e.g. `[443]`; server keeps its real port |
+| `firewall_wireguard_extra_ports_udp` | `[]` | Extra UDP ports redirected (nat REDIRECT) to `firewall_wireguard_port_udp`, e.g. `[443]`; server keeps its real port |
 | `firewall_ddos_enabled` | `true` | Enable DDoS protection |
 | `firewall_ddos_rate` | `10/sec` | Rate limit for DDoS |
 | `firewall_ddos_burst` | `20` | Burst limit for DDoS |
+| `firewall_ddos_excluded_ports_tcp` | `[]` | TCP ports excluded from SYN rate limiting |
 | `firewall_ban_timeout` | `600` | Ban duration (seconds) |
 | `firewall_logging_enabled` | `true` | Enable logging |
 | `firewall_portscan_protection` | `true` | Enable portscan protection |
@@ -88,7 +93,7 @@ firewall_public_ports_tcp:
   - 22
 
 firewall_wireguard_enabled: true
-firewall_wireguard_port: 51820
+firewall_wireguard_port_udp: 51820
 firewall_wireguard_interface: "wg0"
 firewall_wireguard_network: "10.0.0.0/24"
 ```

@@ -85,15 +85,15 @@ $IPT -A OUTPUT -p tcp ! --syn -m state --state NEW -j DROP
 ## service itself is never collaterally blocked.
 {% if firewall_wireguard_enabled %}
 ## WireGuard
-$IPT -A INPUT -i ${WAN} -p udp --dport {{ firewall_wireguard_port }} -j ACCEPT
+$IPT -A INPUT -i ${WAN} -p udp --dport {{ firewall_wireguard_port_udp }} -j ACCEPT
 $IPT -A INPUT -i {{ firewall_wireguard_interface }} -j ACCEPT
 $IPT -A OUTPUT -o {{ firewall_wireguard_interface }} -j ACCEPT
 $IPT -A FORWARD -i {{ firewall_wireguard_interface }} -j ACCEPT
 $IPT -A FORWARD -o {{ firewall_wireguard_interface }} -j ACCEPT
 $IPT -t nat -A POSTROUTING -s {{ firewall_wireguard_network }} -o ${WAN} -j MASQUERADE
-{% for port in firewall_wireguard_extra_udp_ports %}
-## Extra entry port {{ port }}/udp -> {{ firewall_wireguard_port }} (filter INPUT sees the rewritten port)
-$IPT -t nat -A PREROUTING -i ${WAN} -p udp --dport {{ port }} -j REDIRECT --to-ports {{ firewall_wireguard_port }}
+{% for port in firewall_wireguard_extra_ports_udp %}
+## Extra entry port {{ port }}/udp -> {{ firewall_wireguard_port_udp }} (filter INPUT sees the rewritten port)
+$IPT -t nat -A PREROUTING -i ${WAN} -p udp --dport {{ port }} -j REDIRECT --to-ports {{ firewall_wireguard_port_udp }}
 {% endfor %}
 {% if firewall_wireguard_mss | int > 0 %}
 ## TCP MSS clamp (both directions, lower-only: tcpmss match skips SYNs already <= MSS)
@@ -130,8 +130,8 @@ $IPT -A INPUT -m set --match-set BANDDOS src -j DROP
 ## iptables layer applies to the closed ports only; public web/VPN ports rely on
 ## the upstream app (nginx rate-limit, fail2ban) for abuse handling.
 $IPT -N DDOS_PROTECT 2>/dev/null || $IPT -F DDOS_PROTECT
-{% if firewall_ddos_excluded_ports | length > 0 %}
-$IPT -A INPUT -p tcp --syn -m multiport ! --dports {{ firewall_ddos_excluded_ports | join(',') }} -j DDOS_PROTECT
+{% if firewall_ddos_excluded_ports_tcp | length > 0 %}
+$IPT -A INPUT -p tcp --syn -m multiport ! --dports {{ firewall_ddos_excluded_ports_tcp | join(',') }} -j DDOS_PROTECT
 {% else %}
 $IPT -A INPUT -p tcp --syn -j DDOS_PROTECT
 {% endif %}
