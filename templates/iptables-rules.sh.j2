@@ -91,6 +91,11 @@ $IPT -A OUTPUT -o {{ firewall_wireguard_interface }} -j ACCEPT
 $IPT -A FORWARD -i {{ firewall_wireguard_interface }} -j ACCEPT
 $IPT -A FORWARD -o {{ firewall_wireguard_interface }} -j ACCEPT
 $IPT -t nat -A POSTROUTING -s {{ firewall_wireguard_network }} -o ${WAN} -j MASQUERADE
+{% if firewall_wireguard_mss | int > 0 %}
+## TCP MSS clamp (both directions, lower-only: tcpmss match skips SYNs already <= MSS)
+$IPT -t mangle -A FORWARD -o {{ firewall_wireguard_interface }} -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss {{ firewall_wireguard_mss | int + 1 }}:65535 -j TCPMSS --set-mss {{ firewall_wireguard_mss | int }}
+$IPT -t mangle -A FORWARD -i {{ firewall_wireguard_interface }} -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss {{ firewall_wireguard_mss | int + 1 }}:65535 -j TCPMSS --set-mss {{ firewall_wireguard_mss | int }}
+{% endif %}
 {% endif %}
 
 {% if firewall_restricted_ports_tcp | length > 0 %}

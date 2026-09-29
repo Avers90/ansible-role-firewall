@@ -20,6 +20,14 @@ firewall_wireguard_port: "{{ wireguard_port | default('51820') }}"
 firewall_wireguard_interface: "{{ wireguard_interface | default('wg0') }}"
 firewall_wireguard_network: "{{ wireguard_address | default('10.0.0.0/24') | ansible.utils.ipaddr('network/prefix') }}"
 
+## TCP MSS clamp for traffic forwarded through the WireGuard interface.
+## 0 = disabled (no rules rendered). When > 0, SYN packets in both directions
+## get their MSS lowered to this value — never raised. Fixes PMTUD blackholes
+## (tunnel up, small pages load, large ones hang) on LTE / PPPoE / double NAT
+## paths where ICMP "fragmentation needed" is filtered. 1240 = inner MTU 1280.
+## Server-side only, applies to new TCP connections, no client changes needed.
+firewall_wireguard_mss: 0
+
 ## Automatically add WireGuard network to whitelist
 firewall_wireguard_whitelist: true
 
