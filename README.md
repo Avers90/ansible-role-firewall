@@ -62,6 +62,7 @@ Port variables end with the protocol (`_tcp` / `_udp`).
 | `firewall_allow_ping` | `true` | Allow ICMP ping |
 | `firewall_restricted_ports_tcp` | `[]` | TCP ports open only to specific source IPs |
 | `firewall_ipv6_block` | `false` | Close inbound IPv6: ip6tables INPUT/FORWARD DROP, allow only replies, `lo`, ICMPv6 (ND/RA/PTB) and DHCPv6 replies; OUTPUT stays open |
+| `firewall_ipv6_allow_wireguard` | `false` | With `firewall_ipv6_block`: accept `firewall_wireguard_port_udp` over IPv6 and redirect `firewall_wireguard_extra_ports_udp` to it |
 | `firewall_custom_rules` | `[]` | Additional iptables rules |
 
 ## Examples

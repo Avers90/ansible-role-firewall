@@ -69,5 +69,10 @@ firewall_restricted_ports_tcp: []
 ## rules above do not cover IPv6 at all. Default off: enabling flushes ip6tables.
 firewall_ipv6_block: false
 
+## With firewall_ipv6_block: also accept the WireGuard port over IPv6 and
+## REDIRECT firewall_wireguard_extra_ports_udp to it (ip6tables nat). Clients
+## opt in with Endpoint = [v6-addr]:port. Only for hosts with a public v6 address.
+firewall_ipv6_allow_wireguard: false
+
 ## Additional custom rules (advanced)
 firewall_custom_rules: []
