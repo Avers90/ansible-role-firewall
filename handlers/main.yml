@@ -9,4 +9,10 @@
     /usr/local/sbin/iptables-rules.sh
     ipset save > /etc/iptables/ipsets
     netfilter-persistent save
+    # iptables-rules.sh flushes every chain, which also drops the rules
+    # fail2ban inserted (e.g. "-m set --match-set f2b-sshd -j REJECT"), leaving
+    # its bans silently ineffective. Restart it AFTER the save so it re-inserts
+    # its rules live without them being persisted (fail2ban adds them on boot).
+    # try-restart is a no-op when fail2ban is not running.
+    systemctl try-restart fail2ban.service || true
   changed_when: true
