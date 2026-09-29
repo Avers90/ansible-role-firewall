@@ -37,9 +37,7 @@ chain, which is inserted ahead of these rules.
 
 ## Role Variables
 
-Port variables end with the protocol (`_tcp` / `_udp`). The old names
-`firewall_wireguard_port`, `firewall_wireguard_extra_udp_ports` and
-`firewall_ddos_excluded_ports` still work as deprecated fallbacks.
+Port variables end with the protocol (`_tcp` / `_udp`).
 
 | Variable | Default | Description |
 |----------|---------|-------------|

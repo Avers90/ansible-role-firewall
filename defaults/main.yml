@@ -15,13 +15,10 @@ firewall_public_ports_udp: []
 firewall_whitelist_ips: []
 
 ## Port variables carry the protocol as a suffix (_tcp / _udp).
-## Deprecated names still honoured as fallbacks — remove after inventory
-## migration: firewall_wireguard_port, firewall_wireguard_extra_udp_ports,
-## firewall_ddos_excluded_ports.
 
 ## WireGuard integration
 firewall_wireguard_enabled: false
-firewall_wireguard_port_udp: "{{ firewall_wireguard_port | default(wireguard_port | default('51820')) }}"
+firewall_wireguard_port_udp: "{{ wireguard_port | default('51820') }}"
 firewall_wireguard_interface: "{{ wireguard_interface | default('wg0') }}"
 firewall_wireguard_network: "{{ wireguard_address | default('10.0.0.0/24') | ansible.utils.ipaddr('network/prefix') }}"
 
@@ -38,7 +35,7 @@ firewall_wireguard_mss: 0
 ## are additional entry points, e.g. [443] for carriers that drop non-standard
 ## UDP ports. No INPUT rule needed: filter sees the packet already rewritten to
 ## firewall_wireguard_port_udp. Clients opt in by changing only the Endpoint port.
-firewall_wireguard_extra_ports_udp: "{{ firewall_wireguard_extra_udp_ports | default([]) }}"
+firewall_wireguard_extra_ports_udp: []
 
 ## Automatically add WireGuard network to whitelist
 firewall_wireguard_whitelist: true
@@ -49,7 +46,7 @@ firewall_ddos_rate: "10/sec"
 firewall_ddos_burst: 20
 
 ## TCP ports excluded from SYN DDoS rate limiting (e.g. VPN ports where clients reconnect frequently)
-firewall_ddos_excluded_ports_tcp: "{{ firewall_ddos_excluded_ports | default([]) }}"
+firewall_ddos_excluded_ports_tcp: []
 
 ## Ban timeout in seconds (10 minutes default)
 firewall_ban_timeout: 600
