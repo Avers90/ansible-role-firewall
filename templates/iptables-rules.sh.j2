@@ -91,7 +91,7 @@ $IPT -A OUTPUT -o {{ firewall_wireguard_interface }} -j ACCEPT
 $IPT -A FORWARD -i {{ firewall_wireguard_interface }} -j ACCEPT
 $IPT -A FORWARD -o {{ firewall_wireguard_interface }} -j ACCEPT
 $IPT -t nat -A POSTROUTING -s {{ firewall_wireguard_network }} -o ${WAN} -j MASQUERADE
-{% for port in firewall_wireguard_extra_ports %}
+{% for port in firewall_wireguard_extra_udp_ports %}
 ## Extra entry port {{ port }}/udp -> {{ firewall_wireguard_port }} (filter INPUT sees the rewritten port)
 $IPT -t nat -A PREROUTING -i ${WAN} -p udp --dport {{ port }} -j REDIRECT --to-ports {{ firewall_wireguard_port }}
 {% endfor %}
