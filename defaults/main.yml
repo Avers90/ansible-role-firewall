@@ -35,6 +35,8 @@ firewall_wireguard_mss: 0
 ## are additional entry points, e.g. [443] for carriers that drop non-standard
 ## UDP ports. No INPUT rule needed: filter sees the packet already rewritten to
 ## firewall_wireguard_port_udp. Clients opt in by changing only the Endpoint port.
+## A port equal to firewall_wireguard_port_udp is skipped, so one list
+## (e.g. [443, 51820, 27015]) fits hosts listening on any of these ports.
 firewall_wireguard_extra_ports_udp: []
 
 ## Automatically add WireGuard network to whitelist

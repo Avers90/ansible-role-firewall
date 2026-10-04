@@ -51,7 +51,7 @@ Port variables end with the protocol (`_tcp` / `_udp`).
 | `firewall_wireguard_interface` | `wg0` | WireGuard interface name |
 | `firewall_wireguard_network` | `10.0.0.0/24` | WireGuard network CIDR |
 | `firewall_wireguard_mss` | `0` | TCP MSS clamp for forwarded tunnel traffic (`0` = off, e.g. `1240` for inner MTU 1280); lowers MSS only, both directions |
-| `firewall_wireguard_extra_ports_udp` | `[]` | Extra UDP ports redirected (nat REDIRECT) to `firewall_wireguard_port_udp`, e.g. `[443]`; server keeps its real port |
+| `firewall_wireguard_extra_ports_udp` | `[]` | Extra UDP ports redirected (nat REDIRECT) to `firewall_wireguard_port_udp`, e.g. `[443]`; server keeps its real port. A port equal to `firewall_wireguard_port_udp` is skipped, so one list like `[443, 51820, 27015]` fits hosts on any of these ports |
 | `firewall_ddos_enabled` | `true` | Enable DDoS protection |
 | `firewall_ddos_rate` | `10/sec` | Rate limit for DDoS |
 | `firewall_ddos_burst` | `20` | Burst limit for DDoS |

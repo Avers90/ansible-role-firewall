@@ -91,7 +91,7 @@ $IPT -A OUTPUT -o {{ firewall_wireguard_interface }} -j ACCEPT
 $IPT -A FORWARD -i {{ firewall_wireguard_interface }} -j ACCEPT
 $IPT -A FORWARD -o {{ firewall_wireguard_interface }} -j ACCEPT
 $IPT -t nat -A POSTROUTING -s {{ firewall_wireguard_network }} -o ${WAN} -j MASQUERADE
-{% for port in firewall_wireguard_extra_ports_udp %}
+{% for port in firewall_wireguard_extra_ports_udp if port | int != firewall_wireguard_port_udp | int %}
 ## Extra entry port {{ port }}/udp -> {{ firewall_wireguard_port_udp }} (filter INPUT sees the rewritten port)
 $IPT -t nat -A PREROUTING -i ${WAN} -p udp --dport {{ port }} -j REDIRECT --to-ports {{ firewall_wireguard_port_udp }}
 {% endfor %}
@@ -181,7 +181,7 @@ if command -v ip6tables >/dev/null 2>&1; then
   ## WireGuard/AWG entry over IPv6 (outer transport only; the tunnel stays IPv4)
   $IP6T -t nat -F
   $IP6T -A INPUT -i ${WAN} -p udp --dport {{ firewall_wireguard_port_udp }} -j ACCEPT
-{% for port in firewall_wireguard_extra_ports_udp %}
+{% for port in firewall_wireguard_extra_ports_udp if port | int != firewall_wireguard_port_udp | int %}
   $IP6T -t nat -A PREROUTING -i ${WAN} -p udp --dport {{ port }} -j REDIRECT --to-ports {{ firewall_wireguard_port_udp }}
 {% endfor %}
 {% endif %}
