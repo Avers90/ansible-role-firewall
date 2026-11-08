@@ -39,6 +39,13 @@ firewall_wireguard_mss: 0
 ## (e.g. [443, 51820, 27015]) fits hosts listening on any of these ports.
 firewall_wireguard_extra_ports_udp: []
 
+## Source IP for tunnel traffic leaving the WAN interface.
+## "" = MASQUERADE (the kernel picks the primary address of the WAN interface).
+## An IP = SNAT --to-source <IP>: pins the egress address on multi-IP hosts so
+## clients can connect to one address while their traffic leaves from another,
+## and the egress does not silently move if the address order changes.
+firewall_wireguard_snat_source: ""
+
 ## Automatically add WireGuard network to whitelist
 firewall_wireguard_whitelist: true
 
