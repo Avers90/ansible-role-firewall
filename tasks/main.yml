@@ -119,5 +119,5 @@
 
       Useful commands:
         ipset -L WHITELIST                  # View whitelisted IPs
-        iptables -vnL INPUT | grep hashlimit  # SSH rate-limit drops
+        iptables -vnL INPUT | grep 'limit: above'  # SSH rate-limit drops
         netfilter-persistent save           # Save current rules

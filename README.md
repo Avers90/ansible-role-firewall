@@ -147,7 +147,7 @@ Rules are saved via `netfilter-persistent` and automatically restored on boot.
 ipset -L WHITELIST
 
 # SSH rate-limit drops (packet counter)
-iptables -vnL INPUT | grep hashlimit
+iptables -vnL INPUT | grep 'limit: above'
 
 # Per-source state of the SSH limiter
 cat /proc/net/ipt_hashlimit/ssh
