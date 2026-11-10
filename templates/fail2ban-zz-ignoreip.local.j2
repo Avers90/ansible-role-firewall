@@ -1,0 +1,12 @@
+# {{ ansible_managed }}
+#
+# Global ignoreip for every jail on this host: loopback + firewall whitelist +
+# firewall_fail2ban_ignoreip_extra. fail2ban inserts its rules at the top of
+# INPUT, above the firewall WHITELIST ACCEPT, so without this a jail can ban a
+# whitelisted IP. `zz-*.local` is read last in jail.d/.
+
+[DEFAULT]
+ignoreip = 127.0.0.1/8 ::1
+{% for ip in (firewall_whitelist_combined + firewall_fail2ban_ignoreip_extra) | unique %}
+           {{ ip }}
+{% endfor %}

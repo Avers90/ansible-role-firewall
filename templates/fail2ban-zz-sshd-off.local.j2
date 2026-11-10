@@ -1,0 +1,9 @@
+# {{ ansible_managed }}
+#
+# SSH is rate-limited by iptables hashlimit (ansible-role-firewall,
+# firewall_ssh_ratelimit). The stock sshd jail would duplicate it, and its ban
+# rule sits above the firewall WHITELIST ACCEPT.
+# `zz-*.local` is read last in jail.d/, so this wins over defaults-debian.conf.
+
+[sshd]
+enabled = false

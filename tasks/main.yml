@@ -11,8 +11,6 @@
       - ipset
       - ipset-persistent
       - netfilter-persistent
-      - rsyslog
-      - logrotate
     state: present
     update_cache: true
 
@@ -44,52 +42,56 @@
       WireGuard: {{ 'enabled (' + firewall_wireguard_interface + ')' if firewall_wireguard_enabled else 'disabled' }}
       Whitelist: {{ firewall_whitelist_combined | join(', ') if firewall_whitelist_combined | length > 0 else 'none' }}
 
-- name: firewall | Deploy rsyslog configuration
-  ansible.builtin.template:
-    src: 10-rsyslog-ipset.conf.j2
-    dest: /etc/rsyslog.d/10-ipset.conf
-    owner: root
-    group: root
-    mode: "0644"
-  notify: Restart rsyslog
-  when: firewall_logging_enabled | bool
-
-- name: firewall | Determine syslog user
-  ansible.builtin.set_fact:
-    firewall_syslog_user: "{{ 'syslog' if ansible_facts['distribution'] == 'Ubuntu' else 'root' }}"
-
-- name: firewall | Create ipset log directory
+## Older role versions logged bans / portscans to /var/log/ipset via rsyslog.
+- name: firewall | Remove rsyslog config of older role versions
   ansible.builtin.file:
-    path: /var/log/ipset
-    state: directory
-    owner: "{{ firewall_syslog_user }}"
-    group: adm
-    mode: "0750"
-  when: firewall_logging_enabled | bool
+    path: /etc/rsyslog.d/10-ipset.conf
+    state: absent
+  notify: Restart rsyslog
 
-- name: firewall | Create log files with correct permissions
+- name: firewall | Remove logs and logrotate config of older role versions
   ansible.builtin.file:
     path: "{{ item }}"
-    state: touch
-    owner: "{{ firewall_syslog_user }}"
-    group: adm
-    mode: "0640"
-    modification_time: preserve
-    access_time: preserve
+    state: absent
   loop:
-    - /var/log/ipset/ddos.log
-    - /var/log/ipset/portscan.log
-    - /var/log/ipset/whitelist.log
-  when: firewall_logging_enabled | bool
+    - /etc/logrotate.d/ipset-iptables
+    - /var/log/ipset
 
-- name: firewall | Deploy logrotate configuration
+- name: firewall | Create fail2ban jail.d directory
+  ansible.builtin.file:
+    path: /etc/fail2ban/jail.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: firewall_fail2ban_disable_sshd | bool or firewall_fail2ban_ignoreip | bool
+
+- name: firewall | Disable fail2ban sshd jail
   ansible.builtin.template:
-    src: logrotate-ipset.j2
-    dest: /etc/logrotate.d/ipset-iptables
+    src: fail2ban-zz-sshd-off.local.j2
+    dest: /etc/fail2ban/jail.d/zz-sshd-off.local
     owner: root
     group: root
     mode: "0644"
-  when: firewall_logging_enabled | bool
+  notify: Reload fail2ban
+  when: firewall_fail2ban_disable_sshd | bool
+
+- name: firewall | Remove fail2ban sshd override
+  ansible.builtin.file:
+    path: /etc/fail2ban/jail.d/zz-sshd-off.local
+    state: absent
+  notify: Reload fail2ban
+  when: not firewall_fail2ban_disable_sshd | bool
+
+- name: firewall | Deploy fail2ban ignoreip
+  ansible.builtin.template:
+    src: fail2ban-zz-ignoreip.local.j2
+    dest: /etc/fail2ban/jail.d/zz-ignoreip.local
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload fail2ban
+  when: firewall_fail2ban_ignoreip | bool
 
 - name: firewall | Deploy iptables rules script
   ansible.builtin.template:
@@ -113,11 +115,9 @@
       WireGuard NAT: {{ firewall_wireguard_network }} -> {{ firewall_wan_interface_actual }}
       {% endif %}
 
-      Logs: /var/log/ipset/
+      SSH rate limit: {{ firewall_ssh_ratelimit ~ ' (burst ' ~ firewall_ssh_burst ~ ')' if firewall_ssh_ratelimit | length > 0 else 'off' }}
 
       Useful commands:
-        ipset -L WHITELIST         # View whitelisted IPs
-        ipset -L BANPORT           # View banned IPs (portscan)
-        ipset -L BANDDOS           # View banned IPs (DDoS)
-        ipset flush BANPORT        # Clear portscan bans
-        netfilter-persistent save  # Save current rules
+        ipset -L WHITELIST                  # View whitelisted IPs
+        iptables -vnL INPUT | grep hashlimit  # SSH rate-limit drops
+        netfilter-persistent save           # Save current rules

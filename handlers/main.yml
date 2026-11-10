@@ -16,3 +16,8 @@
     # try-restart is a no-op when fail2ban is not running.
     systemctl try-restart fail2ban.service || true
   changed_when: true
+
+## No-op when fail2ban is not installed or not running.
+- name: Reload fail2ban
+  ansible.builtin.shell: systemctl try-reload-or-restart fail2ban.service || true
+  changed_when: true

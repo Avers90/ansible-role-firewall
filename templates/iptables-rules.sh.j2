@@ -14,8 +14,6 @@ WPORT_UDP={{ firewall_public_ports_udp | join(',') }}
 {% endif %}
 
 ## Create ipset lists if not exist
-ipset list BANPORT >/dev/null 2>&1 || ipset create BANPORT hash:ip timeout {{ firewall_ban_timeout }}
-ipset list BANDDOS >/dev/null 2>&1 || ipset create BANDDOS nethash hashsize 16348 maxelem 131072 timeout {{ firewall_ban_timeout }}
 ipset list WHITELIST >/dev/null 2>&1 || ipset create WHITELIST hash:net
 
 ## Populate whitelist
@@ -31,6 +29,10 @@ $IPT -F -t mangle
 $IPT -X 2>/dev/null
 $IPT -t nat -X 2>/dev/null
 $IPT -t mangle -X 2>/dev/null
+
+## Ban lists of older role versions (no rule references them after the flush)
+ipset destroy BANPORT 2>/dev/null
+ipset destroy BANDDOS 2>/dev/null
 
 ## Default policies: DROP everything
 $IPT -P INPUT DROP
@@ -54,11 +56,6 @@ $IPT -A INPUT -p icmp --icmp-type time-exceeded -j ACCEPT
 $IPT -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
 {% endif %}
 
-{% if firewall_logging_enabled %}
-## Log whitelisted IPs (rate limited)
-$IPT -A INPUT -m set --match-set WHITELIST src -m limit --limit 10/min --limit-burst 20 -j LOG --log-prefix "IPSET_WHITELIST: " --log-level 4
-{% endif %}
-
 ## Whitelist IPs (full access, never banned)
 $IPT -A INPUT -m set --match-set WHITELIST src -j ACCEPT
 
@@ -76,13 +73,16 @@ $IPT -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
 $IPT -A INPUT -p tcp ! --syn -m state --state NEW -j DROP
 $IPT -A OUTPUT -p tcp ! --syn -m state --state NEW -j DROP
 
-## --- Service ports — accepted BEFORE the ban lists ---
-## Intentionally-public ports must stay reachable even from IPs that landed in
-## BANPORT/BANDDOS. On CGNAT / mobile carriers many subscribers share one public
-## IP, so a single scanner/abuser behind that IP would otherwise lock out every
-## legit user on this host (their packets are dropped on 443/UDP too). Accepting
-## these ports first means the auto-ban only guards the *closed* ports; the public
-## service itself is never collaterally blocked.
+{% if firewall_ssh_ratelimit | length > 0 %}
+## SSH: drop NEW connections above the per-source-IP rate. No ban list — the
+## source gets through again as soon as it slows down. Sits after the WHITELIST
+## ACCEPT, so whitelisted IPs never hit it, and covers the SSH port only, so a
+## bot behind a shared CGNAT IP cannot affect VPN / web users on that IP.
+$IPT -A INPUT -i ${WAN} -p tcp --dport {{ firewall_ssh_port }} -m conntrack --ctstate NEW -m hashlimit --hashlimit-above {{ firewall_ssh_ratelimit }} --hashlimit-burst {{ firewall_ssh_burst }} --hashlimit-mode srcip --hashlimit-name ssh --hashlimit-htable-expire 600000 -j DROP
+{% endif %}
+
+## --- Service ports ---
+## Everything not accepted below hits the INPUT DROP policy.
 {% if firewall_wireguard_enabled %}
 ## WireGuard
 $IPT -A INPUT -i ${WAN} -p udp --dport {{ firewall_wireguard_port_udp }} -j ACCEPT
@@ -121,42 +121,6 @@ $IPT -A INPUT -i ${WAN} -p tcp -m multiport --dports ${WPORT_TCP} -j ACCEPT
 {% if firewall_public_ports_udp | length > 0 %}
 ## Allow UDP ports
 $IPT -A INPUT -i ${WAN} -p udp -m multiport --dports ${WPORT_UDP} -j ACCEPT
-{% endif %}
-
-## Block IPs in ban lists (only reaches packets to non-public/closed ports now,
-## since the intentionally-public ports were already ACCEPTed above)
-$IPT -A INPUT -m set --match-set BANPORT src -j DROP
-$IPT -A INPUT -m set --match-set BANDDOS src -j DROP
-
-{% if firewall_ddos_enabled %}
-## DDoS protection
-## Note: runs after the public-port ACCEPTs, so SYN-flood throttling at the
-## iptables layer applies to the closed ports only; public web/VPN ports rely on
-## the upstream app (nginx rate-limit, fail2ban) for abuse handling.
-$IPT -N DDOS_PROTECT 2>/dev/null || $IPT -F DDOS_PROTECT
-{% if firewall_ddos_excluded_ports_tcp | length > 0 %}
-$IPT -A INPUT -p tcp --syn -m multiport ! --dports {{ firewall_ddos_excluded_ports_tcp | join(',') }} -j DDOS_PROTECT
-{% else %}
-$IPT -A INPUT -p tcp --syn -j DDOS_PROTECT
-{% endif %}
-$IPT -A DDOS_PROTECT -m hashlimit --hashlimit {{ firewall_ddos_rate }} --hashlimit-burst {{ firewall_ddos_burst }} --hashlimit-mode srcip --hashlimit-name ddosflood -j RETURN
-{% if firewall_logging_enabled %}
-$IPT -A DDOS_PROTECT -j LOG --log-prefix "IPSET_DDOS: " --log-level 4
-{% endif %}
-$IPT -A DDOS_PROTECT -j SET --add-set BANDDOS src
-$IPT -A DDOS_PROTECT -j DROP
-{% endif %}
-
-{% if firewall_portscan_protection %}
-## Portscan protection
-{% if firewall_logging_enabled %}
-$IPT -A INPUT -p tcp -m multiport ! --dports ${WPORT_TCP} -j LOG --log-prefix "IPSET_PORTSCAN: " --log-level 4
-{% if firewall_public_ports_udp | length > 0 %}
-$IPT -A INPUT -p udp -m multiport ! --dports ${WPORT_UDP} -j LOG --log-prefix "IPSET_PORTSCAN: " --log-level 4
-{% endif %}
-{% endif %}
-$IPT -A INPUT -p tcp -m set ! --match-set BANPORT src -j SET --add-set BANPORT src
-$IPT -A INPUT -p udp -m set ! --match-set BANPORT src -j SET --add-set BANPORT src
 {% endif %}
 
 {% for rule in firewall_custom_rules %}
